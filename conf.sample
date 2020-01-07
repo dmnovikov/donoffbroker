@@ -1,0 +1,17 @@
+[mqtt]
+    server = mqtt_server
+    port = 1883
+    login = login_to_mqtt
+    password = pass_to_maqtt
+
+[email]
+    gmail_login = your_gmail_login@gmail.com
+    gmail_pass = pass_to_your_gmail
+    from_str = from_str
+
+[sql]
+    name = dbname
+    user = dbuser
+    pass = dbpass
+    host = dbhost
+    port = dbport
