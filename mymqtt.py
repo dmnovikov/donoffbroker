@@ -204,7 +204,7 @@ def reconnect():
     reconnect_mqtt()
 
 
-print('Start')
+debug('SYS', 'Starting Donoff python broker')
 
 config = ConfigParser()
 config.read(data_file)
