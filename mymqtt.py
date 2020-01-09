@@ -21,8 +21,6 @@ logging.basicConfig()
 database_connected = False
 mqtt_connected = False
 
-data_file = 'conf'
-
 
 # global conn
 
@@ -114,15 +112,16 @@ def on_message(client, userdata, msg):
         parsed_sensor_data = json.loads(msg.payload)
         # print(parsed_sensor_data)
         # debug("MQTTPARSER", str("baselog ask from:" + parsed_sensor_data['dev']))
-
         if conn:
-            debug("BASELOG",
-                  str('Insert to sensor log database ' + parsed_sensor_data['dev'] + ':' + parsed_sensor_data['user'] +
-                      ':' + parsed_sensor_data['name']))
+            # print ("!!")
+            debug("BASELOG", str('Insert to sensor log database ' + parsed_sensor_data['dev'] + ':'
+                                 + parsed_sensor_data['user'] + ':' + parsed_sensor_data['name'] + ':'
+                                 + str(parsed_sensor_data['val'])))
+
             insert_sensor_log(conn, parsed_sensor_data)
 
         else:
-            # debug("BASELOG", "No Connection to database, SKIP")
+            debug("BASELOG", "No Connection to database, SKIP")
             pass
 
     pass
@@ -175,6 +174,15 @@ def insert_sensor_log(c, data):
     c.commit()
 
 
+def insert_events_log(c, data):
+    with c.cursor() as cursor:
+        cursor.execute("""INSERT INTO tmp_lab240_eventslog (time, duser, device, event_type, reason, value, multiplier) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s) """, (datetime.datetime.now(), data['user'], data['dev'],
+                                                      data['s_type'], data['name'], data['val'], data['mult']))
+    # cursor.execute("INSERT INTO tmp_lab240_2 (id) VALUES (%s);", [7])
+    c.commit()
+
+
 def reconnect_base():
     # print('*************** Base connection OK')
     global conn
@@ -204,33 +212,40 @@ def reconnect():
     reconnect_mqtt()
 
 
+data_file = 'conf.donoff'
+
 debug('SYS', 'Starting Donoff python broker')
 
 config = ConfigParser()
 config.read(data_file)
 
-mqtt_conf = config['mqtt']
-email_conf = config['email']
-sql_conf = config['sql']
+try:
+    mqtt_conf = config['mqtt']
+    email_conf = config['email']
+    sql_conf = config['sql']
 
-gmail_login = email_conf['gmail_login']
-gmail_pass = email_conf['gmail_pass']
-from_str = email_conf['from_str']
+    gmail_login = email_conf['gmail_login']
+    gmail_pass = email_conf['gmail_pass']
+    from_str = email_conf['from_str']
 
-TOPIC_SEMDMAIL = "/sys/sendmail"
-TOPIC_SENSOR_BASELOG = "/sys/sensor_baselog"
-TOPIC_ALIVE = "/sys/alive"
+    TOPIC_SEMDMAIL = "/sys/sendmail"
+    TOPIC_SENSOR_BASELOG = "/sys/sensor_baselog"
+    TOPIC_ALIVE = "/sys/alive"
 
-DBNAME = sql_conf['name']
-DBUSER = sql_conf['user']
-DBPASS = sql_conf['pass']
-DBHOST = sql_conf['host']
-DBPORT = sql_conf['port']
+    DBNAME = sql_conf['name']
+    DBUSER = sql_conf['user']
+    DBPASS = sql_conf['pass']
+    DBHOST = sql_conf['host']
+    DBPORT = sql_conf['port']
 
-mqtt_login = mqtt_conf['login']
-mqtt_pass = mqtt_conf['password']
-mqtt_server = mqtt_conf['server']
-mqtt_port = mqtt_conf['port']
+    mqtt_login = mqtt_conf['login']
+    mqtt_pass = mqtt_conf['password']
+    mqtt_server = mqtt_conf['server']
+    mqtt_port = mqtt_conf['port']
+
+except KeyError:
+    debug("SYS", "Error config file")
+    raise SystemExit(1)
 
 conn = connect_database()
 
@@ -247,7 +262,8 @@ client.on_log = on_log
 client.on_publish = on_publish
 
 try:
-    debug("SYS", 'Connecting to server='+str(mqtt_server) +' port='+str(mqtt_port) + ' login='+str(mqtt_login)+' pass='+mqtt_pass)
+    debug("SYS", 'Connecting to server=' + str(mqtt_server) + ' port=' + str(mqtt_port) + ' login=' + str(
+        mqtt_login) + ' pass=' + mqtt_pass)
     client.connect(mqtt_server, port=int(mqtt_port), keepalive=10)
     mqtt_connected = True
     debug("SYS", "MQTT connected OK")
@@ -263,4 +279,4 @@ scheduler.start()
 
 while True:
     # print("publish")
-    time.sleep(10)  # sleep for 10 seconds before next call
+    time.sleep(1)  # sleep for 10 seconds before next call
